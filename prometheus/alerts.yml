@@ -1,0 +1,27 @@
+groups:
+  - name: host-health
+    rules:
+      - alert: HostExporterDown
+        expr: up{job=~"linux|windows|telegraf"} == 0
+        for: 5m
+        labels: {severity: critical}
+        annotations:
+          summary: "Exporter unavailable: {{ $labels.instance }}"
+      - alert: LinuxDiskAlmostFull
+        expr: (100 * (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes) > 90) and on(instance, device, mountpoint) (node_filesystem_readonly == 0)
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "Linux filesystem over 90% used: {{ $labels.instance }} {{ $labels.mountpoint }}"
+      - alert: WindowsDiskAlmostFull
+        expr: 100 * (1 - windows_logical_disk_free_bytes / windows_logical_disk_size_bytes) > 90
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "Windows disk over 90% used: {{ $labels.instance }} {{ $labels.volume }}"
+      - alert: LocalDiskAlmostFull
+        expr: disk_used_percent{job="telegraf"} > 90
+        for: 10m
+        labels: {severity: warning}
+        annotations:
+          summary: "Monitoring host disk over 90% used: {{ $labels.path }}"
